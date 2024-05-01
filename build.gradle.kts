@@ -44,7 +44,7 @@ tasks.withType<JacocoReport> {
     reports {
         xml.required.set(true)
         csv.required.set(false)
-        html.required.set(false)
+        html.required.set(true)
     }
     classDirectories.setFrom(
         classDirectories.files.map {
