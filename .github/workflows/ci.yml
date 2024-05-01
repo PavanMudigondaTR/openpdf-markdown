@@ -1,0 +1,101 @@
+name: Java CI with Gradle
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      debug:
+        type: boolean
+        default: "false"
+
+permissions:
+  statuses: write
+  checks: write
+  contents: write
+  pull-requests: write
+  actions: write
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: microsoft
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Execute Gradle build
+        run: ./gradlew clean test 
+        env:
+          GITHUB_ACTOR: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Unit Test Results
+        uses: phoenix-actions/test-reporting@v12
+        if: always()
+        with:
+          name: Junit Tests 
+          path: build/test-results/test/*.xml
+          reporter: java-junit
+          fail-on-error: true
+      - name: print jacoco report
+        shell: bash
+        run: cat build/reports/jacoco/test/jacocoTestReport.xml
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v4.3.1
+        with:
+          name: jacoco
+          path: build/reports/jacoco/test/jacocoTestReport.xml
+          
+      - name: JaCoCo Code Coverage Report
+        id: coverage
+        uses: PavanMudigonda/jacoco-reporter@v5.0
+        with:
+          coverage_results_path: build/reports/jacoco/test/jacocoTestReport.xml
+          coverage_report_name: Coverage
+          coverage_report_title: JaCoCo
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: list files
+        if: always()
+        shell: bash
+        run: mv ./build/reports/jacoco/test/html/* test-results
+      - name: JACOCO HTML report
+        if: always()
+        uses: PavanMudigonda/html-reporter-github-pages@v1.3
+        with:
+          test_results: test-results
+          keep_reports: 20
+          gh_pages: gh_pages
+          subfolder: docs
+          tool_name: jacoco
+          workflow_name: ${{ github.workflow }}
+          env: CI
+      
+      - name: Create Coverage Badge
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        if: github.event_name != 'pull_request'
+        with:
+          gistID: b402d9e89cfacd00c180599aa8d01386
+          auth: ${{ secrets.CREATE_GIST_PAT }}
+          filename: badge.json
+          label: coverage
+          message: ${{ steps.coverage.outputs.coveragePercentageString }}
+          valColorRange: ${{ steps.coverage.outputs.coveragePercentage }}
+          maxColorRange: 90
+          minColorRange: 50
+          
+      - name: Debug
+        if: always() && inputs.debug == true
+        uses: mxschmitt/action-tmate@v3
+        with:
+          timeout-minutes: 15
