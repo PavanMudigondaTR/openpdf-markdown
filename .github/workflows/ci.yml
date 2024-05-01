@@ -64,7 +64,12 @@ jobs:
           coverage_report_name: Coverage
           coverage_report_title: JaCoCo
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
+          
+      - name: list files
+        if: always()
+        shell: bash
+        run: ls -R
+        
       - name: Create Coverage Badge
         uses: schneegans/dynamic-badges-action@v1.7.0
         if: github.event_name != 'pull_request'
