@@ -1,10 +1,13 @@
+import java.net.URI
+
 plugins {
     kotlin("jvm") version "1.9.23"
+    `maven-publish`
     jacoco
 }
 
 group = "com.github.ralfstuckert"
-version = "1.0-SNAPSHOT"
+version = "0.1.1-SNAPSHOT"
 
 repositories {
     maven {
@@ -21,10 +24,10 @@ repositories {
 
 
 dependencies {
-    implementation("org.jetbrains:markdown:0.5.0")
-    implementation("com.github.librepdf:openpdf:1.3.34")
+    implementation("org.jetbrains:markdown:0.7.0")
+    implementation("com.github.librepdf:openpdf:2.0.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("io.kotest:kotest-assertions-core-jvm:5.8.0")
+    testImplementation("io.kotest:kotest-assertions-core-jvm:5.8.1")
     testImplementation("com.github.ralfstuckert:pdftools:0.3.0")
 }
 
@@ -55,3 +58,24 @@ tasks.withType<JacocoReport> {
     )
 }
 
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = group as String
+            artifactId = rootProject.name
+            version = version
+
+            from(components["java"])
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = URI("https://maven.pkg.github.com/ralfstuckert/openpdf-markdown")
+            credentials {
+                username = System.getenv("USERNAME")
+                password = System.getenv("TOKEN")
+            }
+        }
+    }
+}
